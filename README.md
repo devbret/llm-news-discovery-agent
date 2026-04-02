@@ -34,9 +34,9 @@ By cloning this repo it is assumed you are already familiar with the hardware an
 
 2. Open a terminal
 
-3. Clone this repository using `git` by running the following command: `git clone git@github.com:devbret/news-discovery-agent.git`
+3. Clone this repository using `git` by running the following command: `git clone git@github.com:devbret/llm-news-discovery-agent.git`
 
-4. Navigate to the repo's directory by running: `cd news-discovery-agent`
+4. Navigate to the repo's directory by running: `cd llm-news-discovery-agent`
 
 5. Create a virtual environment by running this command in the terminal: `python3 -m venv venv`
 
