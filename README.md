@@ -1,4 +1,4 @@
-# News Discovery Agent
+# LLM News Discovery Agent
 
 A self-directed news discovery agent which starts with a root keyword, queries NewsAPI for recent articles and uses a locally hosted LLM to analyze each batch of results.
 
