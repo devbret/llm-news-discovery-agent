@@ -48,6 +48,10 @@ Below are the required software programs and instructions for installing and usi
 
 ## Other Considerations
 
+This section contains supporting details which fall outside of the application's overview and setup instructions. It begins with a summary of the abilities this project is meant to demonstrate. The section then explains the terms of the repository's license, along with how to get in touch with any questions or collaboration ideas.
+
+### Abilities Demonstrated
+
 This project repo is intended to demonstrate an ability to do the following:
 
 - Search for recent articles based on a starting keyword and analyze the results with a locally running Ollama LLM
@@ -57,5 +61,9 @@ This project repo is intended to demonstrate an ability to do the following:
 - Flag especially important articles as "super hot" stories and save them into a deduplicated JSON file
 
 - Generate structured output files including super-hot stories and a plain-text export of article content
+
+### License Information
+
+This repository is distributed under the MIT License. Which lets anyone use, copy, publish, distribute, sublicense and sell copies of this software, including for commercial purposes, assuming the original copyright and permission notices will be included in all copies or substantial portions of the software. The software is provided "as is", without warranty of any kind, and the authors are not liable for any claim, damages or other liability arising from its use.
 
 If you have any questions or would like to collaborate, please reach out either on GitHub or via [my website](https://bretbernhoft.com/).
