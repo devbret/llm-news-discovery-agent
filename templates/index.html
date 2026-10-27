@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>News Discovery Dashboard</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%232a78d6'/%3E%3C/svg%3E"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <script
+      src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"
+      defer
+    ></script>
+    <script id="app-config" type="application/json">
+      {{ config | tojson }}
+    </script>
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">News Discovery</div>
+      <div class="run-picker hidden" id="run-picker">
+        <button
+          id="run-button"
+          class="btn"
+          type="button"
+          aria-haspopup="true"
+          aria-expanded="false"
+        >
+          <span class="run-label">Runs</span>
+        </button>
+        <div id="run-menu" class="run-menu hidden"></div>
+      </div>
+      <nav class="tabs" aria-label="Views">
+        <button class="tab active" data-view="overview">Overview</button>
+        <button class="tab" data-view="superhot">Super hot</button>
+        <button class="tab" data-view="news">All news</button>
+        <button class="tab" data-view="keywords">Keywords</button>
+        <button class="tab" data-view="chat">Chat</button>
+      </nav>
+      <div class="topbar-right">
+        <span id="ollama-pill" class="pill pill-muted"
+          >Ollama: checking...</span
+        >
+        <button id="theme-toggle" class="btn btn-sm" title="Theme">Auto</button>
+      </div>
+    </header>
+
+    <main id="main">
+      <div id="empty-state" class="empty hidden">
+        <h2>No runs found yet</h2>
+        <p>
+          The dashboard looks for
+          <code>news_agent_log_&lt;timestamp&gt;.json</code> files in<br /><code
+            id="data-dir"
+          ></code>
+        </p>
+        <p>
+          Run <code>python3 app.py</code> to create one, or set
+          <code>DATA_DIR</code> in your <code>.env</code> to the folder that
+          holds your run files, then reload this page.
+        </p>
+      </div>
+      <div id="load-error" class="card error-box hidden"></div>
+      <div id="loading" class="loading hidden">Loading run...</div>
+
+      <div id="run-header" class="run-header hidden">
+        <h1 id="run-title"></h1>
+      </div>
+
+      <section id="view-overview" class="view">
+        <div id="kpis" class="kpis"></div>
+
+        <div class="charts">
+          <div class="card chart-card fill">
+            <div class="chart-head">
+              <div>
+                <h3>Articles per keyword</h3>
+              </div>
+              <button class="btn btn-sm" data-table-toggle="chart-keywords">
+                Table
+              </button>
+            </div>
+            <div class="chart-wrap" id="chart-keywords-wrap">
+              <canvas id="chart-keywords"></canvas>
+            </div>
+            <div class="chart-table hidden" id="chart-keywords-table"></div>
+          </div>
+
+          <div class="card chart-card">
+            <div class="chart-head">
+              <div>
+                <h3>Top sources</h3>
+              </div>
+              <button class="btn btn-sm" data-table-toggle="chart-sources">
+                Table
+              </button>
+            </div>
+            <div class="chart-wrap" id="chart-sources-wrap">
+              <canvas id="chart-sources"></canvas>
+            </div>
+            <div class="chart-table hidden" id="chart-sources-table"></div>
+          </div>
+
+          <div class="card chart-card chart-wide">
+            <div class="chart-head">
+              <div>
+                <h3>When the stories were published</h3>
+              </div>
+              <button class="btn btn-sm" data-table-toggle="chart-timeline">
+                Table
+              </button>
+            </div>
+            <div class="chart-wrap" id="chart-timeline-wrap">
+              <canvas id="chart-timeline"></canvas>
+            </div>
+            <div class="chart-table hidden" id="chart-timeline-table"></div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="chart-head">
+              <div>
+                <h3>How the search expanded</h3>
+              </div>
+            </div>
+            <div id="tree" class="tree"></div>
+          </div>
+
+          <div class="card">
+            <div class="chart-head">
+              <div>
+                <h3>LLM briefing</h3>
+              </div>
+              <span class="btn-row">
+                <button class="btn btn-sm" id="summary-export" disabled>
+                  Export
+                </button>
+                <button class="btn btn-sm btn-primary" id="summary-btn">
+                  Generate briefing
+                </button>
+              </span>
+            </div>
+            <div id="summary-content" class="md"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-superhot" class="view hidden">
+        <div class="section-head">
+          <h2>Super-hot stories</h2>
+          <span id="superhot-count" class="muted small"></span>
+        </div>
+        <div id="superhot-list" class="cards"></div>
+      </section>
+
+      <section id="view-news" class="view hidden">
+        <div class="section-head">
+          <h2>All news</h2>
+          <span id="news-count" class="muted small"></span>
+        </div>
+        <div class="filters">
+          <input
+            id="news-q"
+            type="search"
+            placeholder="Search titles, descriptions, sources..."
+            aria-label="Search articles"
+          />
+          <select id="news-keyword" aria-label="Filter by keyword">
+            <option value="">All keywords</option>
+          </select>
+          <select id="news-source" aria-label="Filter by source">
+            <option value="">All sources</option>
+          </select>
+          <label class="check"
+            ><input id="news-hot" type="checkbox" /> Super-hot only</label
+          >
+          <select id="news-sort" aria-label="Sort">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="discovery">Discovery order</option>
+            <option value="source">By source</option>
+          </select>
+          <button class="btn btn-sm" id="news-reset">Reset</button>
+        </div>
+        <div id="news-list" class="card news-list"></div>
+        <div class="center">
+          <button class="btn hidden" id="news-more">Show more</button>
+        </div>
+      </section>
+
+      <section id="view-keywords" class="view hidden">
+        <div class="section-head">
+          <h2>Keyword decisions</h2>
+          <span id="keywords-count" class="muted small"></span>
+        </div>
+        <div id="keywords-list" class="stack"></div>
+      </section>
+
+      <section id="view-chat" class="view hidden">
+        <div class="chat-layout">
+          <aside class="card chat-side">
+            <h3>Chat with your local LLM</h3>
+            <label class="field">
+              <span class="small muted">Model</span>
+              <select id="model-select" aria-label="Model"></select>
+            </label>
+            <div id="focus-list"></div>
+            <div class="btn-row" id="chat-actions">
+              <button class="btn btn-sm" id="chat-export" disabled>
+                Export
+              </button>
+              <button class="btn btn-sm" id="chat-clear">
+                Clear conversation
+              </button>
+            </div>
+          </aside>
+          <div class="card chat-main">
+            <div id="chat-messages" class="chat-messages"></div>
+            <form id="chat-form" class="chat-form">
+              <textarea
+                id="chat-input"
+                rows="2"
+                placeholder="Ask about this run... (Enter to send, Shift+Enter for a new line)"
+              ></textarea>
+              <button type="submit" class="btn btn-primary" id="chat-send">
+                Send
+              </button>
+              <button type="button" class="btn hidden" id="chat-stop">
+                Stop
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
