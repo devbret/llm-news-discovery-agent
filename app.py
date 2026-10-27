@@ -8,8 +8,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+DATA_DIR = os.path.abspath(os.getenv("DATA_DIR", "data"))
+os.makedirs(DATA_DIR, exist_ok=True)
+
 logging.basicConfig(
-    filename="agent_runtime.log",
+    filename=os.path.join(DATA_DIR, "agent_runtime.log"),
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
@@ -31,7 +34,7 @@ OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "60"))
 
-logger.info(f"Loaded config: ROOT_KEYWORD={ROOT_KEYWORD}, PAGE_SIZE={PAGE_SIZE}, DAILY_QUOTA={DAILY_QUOTA}")
+logger.info(f"Loaded config: ROOT_KEYWORD={ROOT_KEYWORD}, PAGE_SIZE={PAGE_SIZE}, DAILY_QUOTA={DAILY_QUOTA}, DATA_DIR={DATA_DIR}")
 logger.info(f"Ollama model: {OLLAMA_MODEL} @ {OLLAMA_HOST}")
 
 
@@ -388,7 +391,7 @@ def run_daily_news_agent(root_keyword: str, quota: int = DAILY_QUOTA):
 
     ts = int(time.time())
 
-    log_filename = f"news_agent_log_{ts}.json"
+    log_filename = os.path.join(DATA_DIR, f"news_agent_log_{ts}.json")
     save_log(log, log_filename)
     logger.info(f"=== Agent run complete. Log saved to {log_filename} ===")
 
@@ -411,7 +414,7 @@ def run_daily_news_agent(root_keyword: str, quota: int = DAILY_QUOTA):
             }
         )
 
-    super_hot_filename = f"news_super_hot_{ts}.json"
+    super_hot_filename = os.path.join(DATA_DIR, f"news_super_hot_{ts}.json")
     save_super_hot_timeline(timeline_stories, super_hot_filename)
     logger.info(f"Super hot timeline saved to {super_hot_filename}")
 
@@ -435,11 +438,11 @@ def run_daily_news_agent(root_keyword: str, quota: int = DAILY_QUOTA):
                 }
             )
 
-    all_stories_filename = f"news_all_stories_{ts}.json"
+    all_stories_filename = os.path.join(DATA_DIR, f"news_all_stories_{ts}.json")
     save_all_stories_timeline(all_timeline_stories, all_stories_filename)
     logger.info(f"All stories timeline saved to {all_stories_filename}")
 
-    all_stories_text_filename = f"news_all_stories_{ts}.txt"
+    all_stories_text_filename = os.path.join(DATA_DIR, f"news_all_stories_{ts}.txt")
     save_all_stories_text(all_timeline_stories, all_stories_text_filename)
     logger.info(f"All stories text saved to {all_stories_text_filename}")
 

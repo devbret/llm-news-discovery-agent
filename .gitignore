@@ -1,3 +1,4 @@
 library/
 venv/
 .env
+data/

@@ -1,5 +1,7 @@
 # LLM News Discovery Agent
 
+![Screenshot of frontend UI.](https://hosting.photobucket.com/bbcfb0d4-be20-44a0-94dc-65bff8947cf2/9b0a3496-206a-4466-a6ca-cb811c09c215.png)
+
 Self-directed news discovery agent which starts from a root keyword, searches `NewsAPI` for recent articles, uses a local Ollama LLM to evaluate stories and saves structured output files for later review or visualization.
 
 ## Application Overview
