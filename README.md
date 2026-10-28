@@ -8,7 +8,7 @@ Self-directed news discovery agent which starts from a root keyword, searches `N
 
 Starts from a configured root keyword and searches `NewsAPI` for recent articles. Each batch of results is normalized into a consistent format, then sent to a local Ollama model for analysis. The model evaluates whether the keyword is producing interesting, emerging or high-impact news, explains its reasoning, suggests 3 related follow-up keywords and identifies articles from the batch which are "super hot".
 
-The agent uses the LLM’s suggested keywords to expand its search queue while avoiding duplicate searches and stopping when the daily quota is reached. Throughout the run, it logs every keyword search, returned article batch, LLM decision and flagged super-hot article. At the end it saves a full run log, deduplicated JSON timeline of super-hot stories, deduplicated JSON timeline of all discovered stories and plain-text export of all discovered story content.
+The agent uses the LLM’s suggested keywords to expand its search queue while avoiding duplicate searches. It stops once it has made `DAILY_QUOTA` searches, a limit which applies to each run rather than each day, so running the agent twice in one day uses up to twice as many NewsAPI requests. Throughout the run, it logs every keyword search, returned article batch, LLM decision and flagged super-hot article. At the end it saves a full run log, deduplicated JSON timeline of super-hot stories, deduplicated JSON timeline of all discovered stories and plain-text export of all discovered story content.
 
 ## Basic Setup Instructions
 
@@ -44,7 +44,7 @@ Below are the required software programs and instructions for installing and usi
 
 10. Pull a local LLM using Ollama, for example: `ollama pull mistral`
 
-11. Confirm the model is available: `ollama run mistral`
+11. Confirm the model is available: `ollama list`
 
 12. Run the main script: `python3 app.py`
 
