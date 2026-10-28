@@ -26,16 +26,21 @@ logger.info("=== Starting News Discovery Agent (Ollama) ===")
 
 NEWS_API_KEY = os.getenv("NEWSAPI_KEY", "")
 NEWS_BASE_URL = "https://newsapi.org/v2/everything"
-DAILY_QUOTA = int(os.getenv("DAILY_QUOTA", "10"))
+DAILY_QUOTA = int(os.getenv("DAILY_QUOTA", "50"))
 ROOT_KEYWORD = os.getenv("ROOT_KEYWORD", "")
-PAGE_SIZE = int(os.getenv("PAGE_SIZE", "10"))
+PAGE_SIZE = int(os.getenv("PAGE_SIZE", "100"))
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "60"))
+OLLAMA_NUM_CTX = int(os.getenv("OLLAMA_NUM_CTX", "8192"))
+
+PROMPT_RESERVED_TOKENS = 1024
+PROMPT_CHARS_PER_TOKEN = 3
+ARTICLES_CHAR_BUDGET = max(0, (OLLAMA_NUM_CTX - PROMPT_RESERVED_TOKENS) * PROMPT_CHARS_PER_TOKEN)
 
 logger.info(f"Loaded config: ROOT_KEYWORD={ROOT_KEYWORD}, PAGE_SIZE={PAGE_SIZE}, DAILY_QUOTA={DAILY_QUOTA}, DATA_DIR={DATA_DIR}")
-logger.info(f"Ollama model: {OLLAMA_MODEL} @ {OLLAMA_HOST}")
+logger.info(f"Ollama model: {OLLAMA_MODEL} @ {OLLAMA_HOST} (num_ctx={OLLAMA_NUM_CTX})")
 
 
 def normalize_keyword(keyword: str) -> str:
@@ -96,6 +101,7 @@ def ollama_generate(prompt: str) -> str:
         "model": OLLAMA_MODEL,
         "prompt": prompt,
         "stream": False,
+        "options": {"num_ctx": OLLAMA_NUM_CTX},
     }
 
     try:
@@ -133,17 +139,29 @@ def extract_json_object(text: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def fit_articles_to_budget(articles: List[Dict[str, Any]], budget: int) -> List[Dict[str, Any]]:
+    kept: List[Dict[str, Any]] = []
+    used = 0
+    for article in articles:
+        size = len(json.dumps([article], indent=2))
+        if used + size > budget:
+            break
+        kept.append(article)
+        used += size
+    return kept
+
+
 def ask_local_llm_for_next_keywords(keyword: str, articles: List[Dict[str, Any]]) -> Dict[str, Any]:
     logger.info(f"Sending {len(articles)} articles to local LLM for keyword '{keyword}'")
 
-    articles_json = json.dumps(articles, indent=2)[:60000]
+    articles_json = json.dumps(articles, indent=2)
 
     prompt = f"""
 You are a news-discovery agent. You receive batches of articles from NewsAPI.
 
 ROOT SEARCH: "{keyword}"
 
-ARTICLES (truncated JSON follows, zero-based indexing):
+ARTICLES (JSON follows, zero-based indexing):
 {articles_json}
 
 TASK:
@@ -317,7 +335,14 @@ def run_daily_news_agent(root_keyword: str, quota: int = DAILY_QUOTA):
         articles = result.get("articles", [])
         logger.info(f"Retrieved {len(articles)} articles for '{keyword}'")
 
-        decision = ask_local_llm_for_next_keywords(keyword, articles)
+        prompt_articles = fit_articles_to_budget(articles, ARTICLES_CHAR_BUDGET)
+        if len(prompt_articles) < len(articles):
+            logger.warning(
+                f"Only {len(prompt_articles)} of {len(articles)} articles for '{keyword}' fit in "
+                f"num_ctx={OLLAMA_NUM_CTX}; raise OLLAMA_NUM_CTX to send more to the LLM"
+            )
+
+        decision = ask_local_llm_for_next_keywords(keyword, prompt_articles)
 
         super_hot_specs = decision.get("super_hot_articles", []) or []
         batch_super_hot: List[Dict[str, Any]] = []
@@ -330,9 +355,9 @@ def run_daily_news_agent(root_keyword: str, quota: int = DAILY_QUOTA):
                 logger.warning(f"Super-hot spec has non-int index for '{keyword}': {spec}")
                 continue
 
-            if art_index < 0 or art_index >= len(articles):
+            if art_index < 0 or art_index >= len(prompt_articles):
                 logger.warning(
-                    f"Super-hot index out of range for '{keyword}': {art_index} (len={len(articles)})"
+                    f"Super-hot index out of range for '{keyword}': {art_index} (len={len(prompt_articles)})"
                 )
                 continue
 
